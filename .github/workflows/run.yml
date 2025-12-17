@@ -1,0 +1,78 @@
+
+name: Windows RDP (Ngrok)
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 385
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup System
+      run: |
+        netsh int tcp set global congestionprovider=ctcp
+        choco install googlechrome 7zip -y --no-progress --ignore-checksums
+    
+    - name: Configure Access
+      shell: pwsh
+      run: |
+        $secpw = ConvertTo-SecureString "Vps@hB2h29uY@2" -AsPlainText -Force
+        Set-LocalUser -Name "runneradmin" -Password $secpw
+
+    - name: Enable RDP
+      shell: pwsh
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Type DWord -Force
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop" -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1 -Type DWord -Force
+
+    - name: Setup Ngrok
+      shell: pwsh
+      run: |
+        for ($i = 0; $i -lt 5; $i++) {
+          try {
+            Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip -TimeoutSec 60
+            break
+          } catch { Start-Sleep -Seconds 5 }
+        }
+        Expand-Archive ngrok.zip -DestinationPath . -Force
+        .\ngrok.exe config add-authtoken "36yfklCJQ3axPFWuxSny7fNNTiM_2yrN4EQ7NfAF5AyycayWW"
+        Start-Process -FilePath ".\ngrok.exe" -ArgumentList "tcp","--region","ap","3389" -WindowStyle Hidden
+        Start-Sleep -Seconds 20
+
+    - name: Export Info
+      shell: pwsh
+      run: |
+        $ngrokUrl = ""
+        for ($i = 0; $i -lt 60; $i++) {
+          try { 
+            $tunnels = Invoke-RestMethod -Uri http://localhost:4040/api/tunnels -TimeoutSec 10
+            if ($tunnels.tunnels.Count -gt 0) {
+              $ngrokUrl = $tunnels.tunnels[0].public_url.Replace("tcp://", "").Trim()
+              break
+            }
+          } catch {}
+          Start-Sleep -Seconds 2
+        }
+        if ($ngrokUrl) {
+          "$ngrokUrl|Vps@hB2h29uY@2" | Out-File -FilePath "info.txt" -Encoding UTF8 -NoNewline
+        } else {
+          "ERROR|Ngrok tunnel not found" | Out-File -FilePath "info.txt" -Encoding UTF8 -NoNewline
+        }
+
+    - name: Upload Result
+      uses: actions/upload-artifact@v4
+      with:
+        name: result
+        path: info.txt
+        retention-days: 1
+
+    - name: Keep Alive
+      shell: pwsh
+      run: |
+        for ($i = 1; $i -le 360; $i++) {
+          Start-Sleep -Seconds 60
+        }
