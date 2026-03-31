@@ -1,0 +1,13 @@
+server/cache/
+server/logs/
+server/plugins/
+server/world/
+server/world_nether/
+server/world_the_end/
+server/banned-ips.json
+server/banned-players.json
+server/ops.json
+server/usercache.json
+server/whitelist.json
+server/*.jar
+server/*.log

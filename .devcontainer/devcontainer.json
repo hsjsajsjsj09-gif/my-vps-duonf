@@ -1,0 +1,12 @@
+{
+  "name": "minecraft-codespace",
+  "image": "mcr.microsoft.com/devcontainers/java:1-21-bookworm",
+  "forwardPorts": [25565],
+  "portsAttributes": {
+    "25565": {
+      "label": "Minecraft",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "chmod +x scripts/start-server.sh"
+}
