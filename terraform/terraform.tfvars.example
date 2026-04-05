@@ -1,0 +1,8 @@
+prefix              = "mcvps"
+resource_group_name = "rg-minecraft-gpu"
+location            = "eastus"
+vm_size             = "Standard_NV6ads_A10_v5"
+
+admin_username  = "minecraftadmin"
+admin_password  = "ChangeMe_StrongPassword_123!"
+allowed_rdp_cidr = "203.0.113.10/32"
